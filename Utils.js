@@ -100,7 +100,6 @@ export default class Utils {
   static deleteIfExists(filePath) {
     if (fs.existsSync(filePath)) {
       fs.rmSync(filePath, { recursive: true })
-      console.log(`Arquivo '${filePath}' deletado com sucesso.`)
     }
   }
 

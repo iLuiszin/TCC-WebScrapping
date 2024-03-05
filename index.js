@@ -6,6 +6,9 @@ import fs from 'fs'
 const main = async () => {
   Utils.createIfNotExists('./captcha')
 
+  const nomeArquivo = `captcha-${Math.floor(Math.random() * 1000000)}.png`
+  const downloadFolder = path.resolve('./captcha')
+  const caminhoArquivo = path.join(downloadFolder, nomeArquivo)
   const browser = await Utils.launchBrowser()
 
   const page = await browser.newPage()
@@ -22,8 +25,10 @@ const main = async () => {
     await getCaptchaImageAndResolve(
       page,
       process.env.CAPTCHA_KEY,
-      'body > div > div.a-row.a-spacing-double-large > div.a-section > div > div > form > div.a-row.a-spacing-large > div > div > div.a-row.a-text-center > img'
+      'body > div > div.a-row.a-spacing-double-large > div.a-section > div > div > form > div.a-row.a-spacing-large > div > div > div.a-row.a-text-center > img',
+      caminhoArquivo
     )
+    Utils.deleteIfExists(caminhoArquivo)
   }
 
   const price = await page.$eval(
@@ -42,10 +47,12 @@ const main = async () => {
   await browser.close()
 }
 
-const getCaptchaImageAndResolve = async (page, captchaKey, selector) => {
-  const downloadFolder = path.resolve('./captcha')
-  const nomeArquivo = `captcha-${Math.floor(Math.random() * 1000000)}.png`
-  const caminhoArquivo = path.join(downloadFolder, nomeArquivo)
+const getCaptchaImageAndResolve = async (
+  page,
+  captchaKey,
+  selector,
+  caminhoArquivo
+) => {
   const captcha = await page.$(selector)
   await captcha.screenshot({
     path: caminhoArquivo,
