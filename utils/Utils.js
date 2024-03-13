@@ -7,6 +7,7 @@ import axios from 'axios'
 import pdfjs from 'pdfjs-dist'
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import userPrefs from 'puppeteer-extra-plugin-user-preferences'
+import { executablePath } from 'puppeteer'
 
 export default class Utils {
   // Lê o arquivo e retorna em base64
@@ -62,11 +63,12 @@ export default class Utils {
   }
 
   // Inicia o browser
-  static async launchBrowser() {
+  static async launchBrowser(headlessOption = false) {
     puppeteer.use(StealthPlugin())
     const browser = await puppeteer.launch({
-      headless: 'new',
+      headless: headlessOption,
       slowMo: 20,
+      executablePath: executablePath('chrome'),
     })
     return browser
   }

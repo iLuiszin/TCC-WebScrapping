@@ -14,9 +14,12 @@ const main = async () => {
 
   const page = await browser.newPage()
 
+  await page.setDefaultNavigationTimeout(0)
   await page.goto(
-    'https://www.amazon.com.br/Muscula%C3%A7%C3%A3o-Contador-Ajust%C3%A1vel-Antebra%C3%A7o-100kg/dp/B0CS3VC38D?ref_=Oct_d_onr_d_17833917011_1&pd_rd_w=cSAIx&content-id=amzn1.sym.d991f3b3-3107-4a98-bbe4-0100b8e0114c&pf_rd_p=d991f3b3-3107-4a98-bbe4-0100b8e0114c&pf_rd_r=M3PR1EBEBGAJMZ64PP8Z&pd_rd_wg=5mx0k&pd_rd_r=e86a2308-1c6d-4508-8df5-3a8de9591117&pd_rd_i=B0CS3VC38D'
+    'https://www.ebay.com/itm/354593770099?_trkparms=amclksrc%3DITM%26aid%3D777008%26algo%3DPERSONAL.TOPIC%26ao%3D1%26asc%3D20230811172246%26meid%3D4849389b282e4adc82cec2715f3ac230%26pid%3D101783%26rk%3D1%26rkt%3D1%26itm%3D354593770099%26pmt%3D0%26noa%3D1%26pg%3D4375194%26algv%3DFeaturedDealsV2&_trksid=p4375194.c101783.m150506&_trkparms=parentrq%3A1b307ad218e0ab8d189db214ffff9c76%7Cpageci%3A295161f3-dcd8-11ee-b301-b67a0d6d7629%7Ciid%3A1%7Cvlpname'
   )
+
+  console.log('teste')
 
   if (
     await page.$(
@@ -32,11 +35,15 @@ const main = async () => {
     Utils.deleteIfExists(caminhoArquivo)
   }
 
-  await page.waitForSelector('#corePriceDisplay_desktop_feature_div')
+  await page.waitForSelector(
+    '#mainContent > div.vim.d-vi-evo-region > div.vim.x-price-section.mar-t-20 > div > div > div.x-price-approx > span.x-price-approx__price > span'
+  )
   const price = await page.$eval(
-    '#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-none.aok-align-center.aok-relative > span.aok-offscreen',
+    '#mainContent > div.vim.d-vi-evo-region > div.vim.x-price-section.mar-t-20 > div > div > div.x-price-approx > span.x-price-approx__price > span',
     (el) => el.innerText
   )
+
+  console.log(price)
 
   const frete = await page.$eval(
     '#mir-layout-DELIVERY_BLOCK-slot-PRIMARY_DELIVERY_MESSAGE_LARGE > span',
