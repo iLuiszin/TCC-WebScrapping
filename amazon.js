@@ -4,7 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import 'dotenv/config'
 
-const main = async () => {
+const amazonScraper = async () => {
   Utils.createIfNotExists('./captcha')
 
   const nomeArquivo = `captcha-${Math.floor(Math.random() * 1000000)}.png`
@@ -44,7 +44,11 @@ const main = async () => {
   )
 
   console.log(price)
-  console.log(frete)
+
+  const regex = /R\$\s\d+,\d{2}/
+
+  const resultado = frete.match(regex)
+  console.log(resultado[0])
 
   await browser.close()
 }
@@ -74,4 +78,4 @@ const getCaptchaImageAndResolve = async (
   await Utils.sleep(2000)
 }
 
-main()
+export default amazonScraper

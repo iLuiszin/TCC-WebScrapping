@@ -1,10 +1,9 @@
 import Utils from './utils/Utils.js'
 import Captcha from './utils/Captcha.js'
-import path from 'path'
 import fs from 'fs'
 import 'dotenv/config'
 
-const main = async () => {
+const aliexpressScraper = async () => {
   Utils.createIfNotExists('./captcha')
 
   const browser = await Utils.launchBrowser()
@@ -84,4 +83,4 @@ const getCaptchaImageAndResolve = async (
   await Utils.sleep(2000)
 }
 
-main()
+export default aliexpressScraper

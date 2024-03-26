@@ -4,7 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import 'dotenv/config'
 
-const main = async () => {
+const ebayScraper = async () => {
   Utils.createIfNotExists('./captcha')
 
   const nomeArquivo = `captcha-${Math.floor(Math.random() * 1000000)}.png`
@@ -81,4 +81,4 @@ const getCaptchaImageAndResolve = async (
   await Utils.sleep(2000)
 }
 
-main()
+export default ebayScraper
