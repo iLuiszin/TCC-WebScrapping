@@ -4,7 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import 'dotenv/config'
 
-const amazonScraper = async () => {
+const amazonScraper = async (url) => {
   Utils.createIfNotExists('./captcha')
 
   const nomeArquivo = `captcha-${Math.floor(Math.random() * 1000000)}.png`
@@ -14,9 +14,7 @@ const amazonScraper = async () => {
 
   const page = await browser.newPage()
 
-  await page.goto(
-    'https://www.amazon.com.br/Muscula%C3%A7%C3%A3o-Contador-Ajust%C3%A1vel-Antebra%C3%A7o-100kg/dp/B0CS3VC38D?ref_=Oct_d_onr_d_17833917011_1&pd_rd_w=cSAIx&content-id=amzn1.sym.d991f3b3-3107-4a98-bbe4-0100b8e0114c&pf_rd_p=d991f3b3-3107-4a98-bbe4-0100b8e0114c&pf_rd_r=M3PR1EBEBGAJMZ64PP8Z&pd_rd_wg=5mx0k&pd_rd_r=e86a2308-1c6d-4508-8df5-3a8de9591117&pd_rd_i=B0CS3VC38D'
-  )
+  await page.goto(url)
 
   if (
     await page.$(
@@ -43,14 +41,18 @@ const amazonScraper = async () => {
     (el) => el.innerText
   )
 
-  console.log(price)
 
-  const regex = /R\$\s\d+,\d{2}/
-
-  const resultado = frete.match(regex)
-  console.log(resultado[0])
+  const regexPrice = /R\$\s\d+,\d{2}/
+  const regexNumbers = /\d+(\.\d+)?/g
+  const priceFrete = frete.match(regexPrice)
+  const numbersFrete = priceFrete ? priceFrete[0].match(regexNumbers) : null
+  const numbersPrice = price.match(regexNumbers)
+  const formatedFrete = numbersFrete ? numbersFrete.join('.') : 0
+  const formatedPrice = numbersPrice ? numbersPrice.join('.') : 0
 
   await browser.close()
+
+  return { price: Number(formatedPrice), frete: Number(formatedFrete) }
 }
 
 const getCaptchaImageAndResolve = async (
