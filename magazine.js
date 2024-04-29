@@ -4,7 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import 'dotenv/config'
 
-const amazonScraper = async (url) => {
+const magazineScrapper = async (url = 'https://www.magazineluiza.com.br/mouse-gamer-razer-deathadder-essential-mechanical-switch-5-botoes-6400dpi-preto/p/jb07fh578f/in/mger/') => {
   Utils.createIfNotExists('./captcha')
 
   const nomeArquivo = `captcha-${Math.floor(Math.random() * 1000000)}.png`
@@ -14,30 +14,25 @@ const amazonScraper = async (url) => {
 
   const page = await browser.newPage()
 
+
+  await page.setDefaultNavigationTimeout(0)
   await page.goto(url)
 
-  if (
-    await page.$(
-      'body > div > div.a-row.a-spacing-double-large > div.a-section > div > div > form > div.a-row.a-spacing-large > div > div > div.a-row.a-text-center > img'
-    )
-  ) {
-    await getCaptchaImageAndResolve(
-      page,
-      process.env.CAPTCHA_KEY,
-      'body > div > div.a-row.a-spacing-double-large > div.a-section > div > div > form > div.a-row.a-spacing-large > div > div > div.a-row.a-text-center > img',
-      caminhoArquivo
-    )
-    Utils.deleteIfExists(caminhoArquivo)
-  }
+  await page.click('#__next > div > main > section:nth-child(7) > div.sc-fqkvVR.jHtlDv > div.sc-dhKdcB.ccRGAF.sc-cezyBN.cAGJQN > span')
 
-  await page.waitForSelector('#corePriceDisplay_desktop_feature_div')
+  await page.waitForSelector('#zipcode')
+
+  await page.type('#zipcode', '70200-730')
+
+  await Utils.sleep(5000)
+
   const price = await page.$eval(
-    '#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-none.aok-align-center.aok-relative > span.aok-offscreen',
+    '#__next > div > main > section:nth-child(7) > div.sc-dcJsrY.bCfntu > div:nth-child(1) > div > div > div > p',
     (el) => el.innerText
   )
 
   const frete = await page.$eval(
-    '#mir-layout-DELIVERY_BLOCK-slot-PRIMARY_DELIVERY_MESSAGE_LARGE > span',
+    '#\\31  > p.sc-kpDqfm.eCPtRw.sc-jBeBSR.kpbDDL',
     (el) => el.innerText
   )
 
@@ -46,10 +41,14 @@ const amazonScraper = async (url) => {
     frete
   )
 
+
   await browser.close()
 
   return { price: formatedPrice, frete: formatedFrete }
+
 }
+
+magazineScrapper()
 
 const getCaptchaImageAndResolve = async (
   page,
@@ -76,4 +75,4 @@ const getCaptchaImageAndResolve = async (
   await Utils.sleep(2000)
 }
 
-export default amazonScraper
+export default magazineScrapper
