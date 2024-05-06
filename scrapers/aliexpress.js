@@ -1,5 +1,5 @@
-import Utils from './utils/Utils.js'
-import Captcha from './utils/Captcha.js'
+import Utils from '../utils/Utils.js'
+import Captcha from '../utils/Captcha.js'
 import fs from 'fs'
 import 'dotenv/config'
 
