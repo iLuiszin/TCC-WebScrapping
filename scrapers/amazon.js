@@ -5,50 +5,55 @@ import fs from 'fs'
 import 'dotenv/config'
 
 const amazonScraper = async (url) => {
-  Utils.createIfNotExists('./captcha')
+  try {
+    Utils.createIfNotExists('./captcha')
 
-  const nomeArquivo = `captcha-${Math.floor(Math.random() * 1000000)}.png`
-  const downloadFolder = path.resolve('./captcha')
-  const caminhoArquivo = path.join(downloadFolder, nomeArquivo)
-  const browser = await Utils.launchBrowser()
+    const nomeArquivo = `captcha-${Math.floor(Math.random() * 1000000)}.png`
+    const downloadFolder = path.resolve('./captcha')
+    const caminhoArquivo = path.join(downloadFolder, nomeArquivo)
+    const browser = await Utils.launchBrowser('new')
 
-  const page = await browser.newPage()
+    const page = await browser.newPage()
 
-  await page.goto(url)
+    await page.goto(url)
 
-  if (
-    await page.$(
-      'body > div > div.a-row.a-spacing-double-large > div.a-section > div > div > form > div.a-row.a-spacing-large > div > div > div.a-row.a-text-center > img'
+    if (
+      await page.$(
+        'body > div > div.a-row.a-spacing-double-large > div.a-section > div > div > form > div.a-row.a-spacing-large > div > div > div.a-row.a-text-center > img'
+      )
+    ) {
+      await getCaptchaImageAndResolve(
+        page,
+        process.env.CAPTCHA_KEY,
+        'body > div > div.a-row.a-spacing-double-large > div.a-section > div > div > form > div.a-row.a-spacing-large > div > div > div.a-row.a-text-center > img',
+        caminhoArquivo
+      )
+      Utils.deleteIfExists(caminhoArquivo)
+    }
+
+    await page.waitForSelector('#corePriceDisplay_desktop_feature_div')
+    const price = await page.$eval(
+      '#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-none.aok-align-center.aok-relative > span.aok-offscreen',
+      (el) => el.innerText
     )
-  ) {
-    await getCaptchaImageAndResolve(
-      page,
-      process.env.CAPTCHA_KEY,
-      'body > div > div.a-row.a-spacing-double-large > div.a-section > div > div > form > div.a-row.a-spacing-large > div > div > div.a-row.a-text-center > img',
-      caminhoArquivo
+
+    const frete = await page.$eval(
+      '#mir-layout-DELIVERY_BLOCK-slot-PRIMARY_DELIVERY_MESSAGE_LARGE > span',
+      (el) => el.innerText
     )
-    Utils.deleteIfExists(caminhoArquivo)
+
+    const { formatedPrice, formatedFrete } = Utils.formatPrices(
+      price,
+      frete
+    )
+
+    await browser.close()
+
+    return { price: formatedPrice, frete: formatedFrete }
+  } catch (error) {
+    console.log(error)
+    return error
   }
-
-  await page.waitForSelector('#corePriceDisplay_desktop_feature_div')
-  const price = await page.$eval(
-    '#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-none.aok-align-center.aok-relative > span.aok-offscreen',
-    (el) => el.innerText
-  )
-
-  const frete = await page.$eval(
-    '#mir-layout-DELIVERY_BLOCK-slot-PRIMARY_DELIVERY_MESSAGE_LARGE > span',
-    (el) => el.innerText
-  )
-
-  const { formatedPrice, formatedFrete } = Utils.formatPrices(
-    price,
-    frete
-  )
-
-  await browser.close()
-
-  return { price: formatedPrice, frete: formatedFrete }
 }
 
 const getCaptchaImageAndResolve = async (

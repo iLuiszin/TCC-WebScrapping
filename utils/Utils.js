@@ -87,7 +87,7 @@ export default class Utils {
     const priceFrete = frete.match(regexPrice) ?? frete.match(regexNumbers)
     const numbersFrete = priceFrete ? priceFrete[0].match(regexNumbers) : null
     const numbersPrice = price.match(regexNumbers)
-    const numbersICMS = icms.match(regexNumbers)
+    const numbersICMS = icms != 0 ? icms.match(regexNumbers) : null
     const formatedFrete = numbersFrete ? numbersFrete.join('.') : 0
     const formatedPrice = numbersPrice ? numbersPrice.join('.') : 0
     const formatedICMS = numbersICMS ? numbersICMS.join('.') : 0;

@@ -1,6 +1,6 @@
 import { CronJob } from 'cron'
 import aliexpressScraper from './scrapers/aliexpress.js'
-import ebayScraper from './scrapers/ebay.js'
+import magazineScrapper from './scrapers/magazine.js'
 import amazonScraper from './scrapers/amazon.js'
 import mongoose from './db/conn.js'
 import Product from './models/Product.js'
@@ -13,9 +13,10 @@ const job = new CronJob('*/5 * * * *', async () => {
 
   for (const product of products) {
 
-    const [aliexpress, amazon] = await Promise.all([
+    const [aliexpress, amazon, magazine] = await Promise.all([
       aliexpressScraper(product.aliexpressUrl),
       amazonScraper(product.amazonUrl),
+      magazineScrapper(product.magazineUrl)
     ])
 
     product.aliexpressPrice = aliexpress.price
@@ -23,6 +24,8 @@ const job = new CronJob('*/5 * * * *', async () => {
     product.aliexpressICMS = aliexpress.icms
     product.amazonPrice = amazon.price
     product.amazonFrete = amazon.frete
+    product.magazinePrice = magazine.price
+    product.magazineFrete = magazine.frete
 
     console.log(product)
 
