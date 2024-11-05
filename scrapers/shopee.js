@@ -1,95 +1,111 @@
-import Utils from '../utils/Utils.js'
-import Captcha from '../utils/Captcha.js'
+import * as chromeLauncher from 'chrome-launcher'
+import CDP from 'chrome-remote-interface'
 import path from 'path'
 import fs from 'fs'
-import 'dotenv/config'
+import os from 'os'
+import * as rimraf from 'rimraf'
+import pdf from 'pdf-parse/lib/pdf-parse.js'
 
-const shopeeScrapper = async (url = 'https://shopee.com.br/Razer-Mouse-%C3%93ptico-Ergon%C3%B4mico-De-DeathAdder-6400DPI-Com-Fio-USB-i.262478502.12540969018') => {
-  Utils.createIfNotExists('./captcha')
-  const browser = await Utils.launchBrowser(false)
-
-  const page = await browser.newPage()
-
-  await page.set
-  await page.setDefaultNavigationTimeout(0)
-  await page.goto(url)
-
-  await Utils.sleep(5000)
-
-  await page.click('#main > div > div.baUdvi > div > div.aktksg > button.DYKctS.hqfBzL.NfY4UB.CEiA6B.ukVXpA')
-
-  await Utils.sleep(5000)
-
-  await page.type('input[name="loginKey"]', process.env.LOGIN_KEY)
-  await page.type('input[name="password"]', process.env.PASSWORD)
-
-  await Utils.sleep(2000)
-
-  await page.click('#main > div > div.uqT7Nz > div > div > div > div:nth-child(2) > div > div.p7oxk2 > form > div.biFZbP > div.q18aRr > button')
-
-  await page.click('#main > div > div.uqT7Nz > div > div > div > div:nth-child(2) > div > div.p7oxk2 > form > button')
-
-  await Utils.sleep(1000)
-
-  await page.pdf({
-    path: 'screenshot.pdf',
-    format: 'a4',
-    margin: {
-      top: '10px',
-      right: '0px',
-      bottom: '10px',
-      left: '0px',
-    },
-  })
-
-  await page.screenshot({ path: 'screenshot.png' })
-
-  // get current url
-  const currentUrl = await page.url()
-
-  await page.screenshot({ path: 'screenshot.png' })
-
-
-
-
-
-  // const { formatedPrice, formatedFrete } = Utils.formatPrices(
-  //   price,
-  //   frete
-  // )
-
-
-  await browser.close()
-
-  return { price: formatedPrice, frete: formatedFrete }
-
-}
-
-shopeeScrapper()
-
-const getCaptchaImageAndResolve = async (
-  page,
-  captchaKey,
-  selector,
-  caminhoArquivo
+const shopeeScrapper = async (
+  url = 'https://shopee.com.br/Razer-Mouse-%C3%93ptico-Ergon%C3%B4mico-De-DeathAdder-6400DPI-Com-Fio-USB-i.262478502.12540969018'
 ) => {
-  const captcha = await page.$(selector)
-  await captcha.screenshot({
-    path: caminhoArquivo,
-    omitBackground: true,
-  })
+  let chrome
+  let chromeProfileDir
+  let unwantedDir // Diretório indesejado que será criado
 
-  const fileContent = fs.readFileSync(caminhoArquivo)
-  const captchaBase64 = Buffer.from(fileContent).toString('base64')
+  try {
+    // Definir um caminho manualmente dentro do /tmp do WSL
+    chromeProfileDir = '/tmp/chrome-temp-profile'
 
-  const captchaResponse = await Captcha.enviaCaptcha(captchaBase64, captchaKey)
-  const taskId = captchaResponse.split('|')[1]
-  await Utils.sleep(2000)
-  const captchaResolvido = await Captcha.pegaCaptcha(taskId, captchaKey)
+    // Verificar se o diretório existe e criar se necessário
+    if (!fs.existsSync(chromeProfileDir)) {
+      fs.mkdirSync(chromeProfileDir, { recursive: true })
+      console.log(`Diretório temporário criado: ${chromeProfileDir}`)
+    }
 
-  await page.type('#captchacharacters', captchaResolvido)
-  await page.click('button')
-  await Utils.sleep(2000)
+    // Função para iniciar o Chrome
+    async function launchChrome() {
+      return await chromeLauncher.launch({
+        chromeFlags: ['--no-first-run', '--disable-gpu', '--no-sandbox'],
+        chromePath: '/usr/bin/google-chrome',
+        userDataDir: chromeProfileDir,
+      })
+    }
+
+    chrome = await launchChrome()
+    const protocol = await CDP({ port: chrome.port })
+
+    const { Page, Runtime } = protocol
+
+    await Page.enable()
+    await Page.navigate({ url })
+    await Page.loadEventFired()
+
+    await new Promise((resolve) => setTimeout(resolve, 5000))
+
+    const bodyHtml = await Runtime.evaluate({
+      expression: `
+        document.querySelector('body').innerHTML
+      `,
+    })
+
+    const html = bodyHtml.result.value
+
+    const priceRegex = /R\$\d{1,3}(?:\.\d{3})*,\d{2}/g
+
+    const prices = html.match(priceRegex)
+
+    let productPrice = null
+    let lowestFretePrice = null
+
+    prices.forEach((price) => {
+      const value = parseFloat(price.replace('R$', '').replace(',', '.'))
+
+      if (value > 30) {
+        if (productPrice === null || value < productPrice) {
+          productPrice = value
+        }
+      } else if (value <= 30) {
+        if (lowestFretePrice === null || value < lowestFretePrice) {
+          lowestFretePrice = value
+        }
+      }
+    })
+
+    await protocol.close()
+    await chrome.kill()
+    return { price: productPrice, frete: lowestFretePrice }
+  } catch (error) {
+    console.error('Erro ao iniciar o Chrome:', error)
+  } finally {
+    if (chromeProfileDir) {
+      rimraf.sync(chromeProfileDir)
+      console.log(`Diretório temporário ${chromeProfileDir} excluído.`)
+    }
+
+    // Remover diretórios indesejados que incluem "wsl.localhost"
+    try {
+      const baseDir = '/home/luis/workspace/study/TCC-WebScrapping'
+      const dirContents = fs.readdirSync(baseDir)
+
+      dirContents.forEach((dir) => {
+        const fullPath = path.join(baseDir, dir)
+        if (
+          fs.statSync(fullPath).isDirectory() &&
+          fullPath.includes('wsl.localhost')
+        ) {
+          rimraf.sync(fullPath)
+          console.log(`Diretório indesejado ${fullPath} excluído.`)
+        }
+      })
+    } catch (err) {
+      console.error(`Erro ao excluir o diretório indesejado: ${err.message}`)
+    }
+
+    if (chrome) {
+      await chrome.kill()
+    }
+  }
 }
 
 export default shopeeScrapper

@@ -7,7 +7,7 @@ const aliexpressScraper = async (url) => {
   try {
     Utils.createIfNotExists('./captcha')
 
-    const browser = await Utils.launchBrowser('new')
+    const browser = await Utils.launchBrowser(false)
 
     const page = await browser.newPage()
     page.setDefaultNavigationTimeout(0)
@@ -23,41 +23,27 @@ const aliexpressScraper = async (url) => {
       src = await image.$eval('img', (el) => el.src)
     }
 
-    let price = ''
-
-    if (
-      src ===
-      'https://ae01.alicdn.com/kf/Sa88c45fd792549109cf6ff034b556a2eY/256x32.png_.webp'
-    ) {
-      price = await page.$eval(
-        '#root > div > div.pdp-body.pdp-wrap > div > div.pdp-body-top-left > div.pdp-info > div.pdp-info-right > div.price--wrap--tA4MDk4.product-price.price--hasDiscount--LTvrFnq > div.price--original--qDQaH8V > span.price--originalText--Zsc6sMv',
-        (el) => el.innerText
-      )
-    } else {
-      const priceDiv = await page.$(
-        '#root div.price--current--H7sGzqb.product-price-current > div'
-      )
-
-      const priceSpans = await priceDiv.$$('span')
-
-      for (const span of priceSpans) {
-        price += await page.evaluate((span) => span.innerText, span)
-      }
-    }
-
-    const freteDiv = await page.$(
-      '#root > div > div.pdp-body.pdp-wrap > div > div.pdp-body-top-right > div > div > div.shipping--wrap--Dhb61O7 > div > div.shipping--content--xEqXBXk'
+    const price = await page.$eval(
+      'span[class*="currentPriceText"]',
+      (el) => el.innerText
     )
-    let icms = '';
-    if (await page.$('#root > div > div.pdp-body.pdp-wrap > div > div.pdp-body-top-left > div.pdp-info > div.pdp-info-right > div.vat-installment--wrap--VAGtT5q > a')) {
-      icms = await page.$eval(
-        '#root > div > div.pdp-body.pdp-wrap > div > div.pdp-body-top-left > div.pdp-info > div.pdp-info-right > div.vat-installment--wrap--VAGtT5q > a',
-        (el) => el.innerText
-      )
 
-    }
+    const icmsText = await page.$eval(
+      'a[class*="installment--item"]',
+      (el) => el.innerText
+    )
 
-    const frete = await freteDiv.$eval('strong', (el) => el.innerText)
+    const icms = icmsText.match(/R\$[0-9,.]+/)[0]
+
+    const freteText = await page.$eval(
+      'div[class*="dynamic-shipping-titleLayout"] > span > span > strong',
+      (el) => el.innerText
+    )
+
+    const frete = freteText.includes('Frete grátis')
+      ? '0,00'
+      : freteText.match(/R\$[0-9,.]+/)[0]
+
     const { formatedPrice, formatedFrete, formatedICMS } = Utils.formatPrices(
       price,
       frete,
@@ -68,13 +54,12 @@ const aliexpressScraper = async (url) => {
     return {
       price: formatedPrice,
       frete: formatedFrete,
-      icms: formatedICMS
+      icms: formatedICMS,
     }
   } catch (error) {
     console.log(error)
     return error
   }
 }
-
 
 export default aliexpressScraper

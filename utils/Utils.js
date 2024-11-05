@@ -10,7 +10,6 @@ import userPrefs from 'puppeteer-extra-plugin-user-preferences'
 import { executablePath } from 'puppeteer'
 
 export default class Utils {
-
   // Seta todas as configurações para o download
   static async configureDownloadSettings(client, downloadFolder) {
     await client.send('Browser.setDownloadBehavior', {
@@ -38,9 +37,7 @@ export default class Utils {
 
   // Inicia o browser
   static async launchBrowser(headlessOption = false) {
-    puppeteer.use(
-      StealthPlugin(),
-    )
+    puppeteer.use(StealthPlugin())
     const browser = await puppeteer.launch({
       headless: headlessOption,
       slowMo: 20,
@@ -87,12 +84,20 @@ export default class Utils {
     const priceFrete = frete.match(regexPrice) ?? frete.match(regexNumbers)
     const numbersFrete = priceFrete ? priceFrete[0].match(regexNumbers) : null
     const numbersPrice = price.match(regexNumbers)
+
+    if (numbersPrice.length > 2) {
+      numbersPrice.pop()
+    }
+
     const numbersICMS = icms != 0 ? icms.match(regexNumbers) : null
     const formatedFrete = numbersFrete ? numbersFrete.join('.') : 0
     const formatedPrice = numbersPrice ? numbersPrice.join('.') : 0
-    const formatedICMS = numbersICMS ? numbersICMS.join('.') : 0;
+    const formatedICMS = numbersICMS ? numbersICMS.join('.') : 0
 
-    return { formatedPrice: Number(formatedPrice), formatedFrete: Number(formatedFrete), formatedICMS: Number(formatedICMS) }
+    return {
+      formatedPrice: parseFloat(formatedPrice),
+      formatedFrete: parseFloat(formatedFrete),
+      formatedICMS: parseFloat(formatedICMS),
+    }
   }
-
 }

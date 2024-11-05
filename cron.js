@@ -1,23 +1,25 @@
 import { CronJob } from 'cron'
 import aliexpressScraper from './scrapers/aliexpress.js'
-import magazineScrapper from './scrapers/magazine.js'
+import magazineScraper from './scrapers/magazine.js'
 import amazonScraper from './scrapers/amazon.js'
-import mongoose from './db/conn.js'
+import shopeeScraper from './scrapers/shopee.js'
 import Product from './models/Product.js'
 
-// rodar a cada 5 minu
-const job = new CronJob('*/5 * * * *', async () => {
-
-  // get all data from db
-  const products = await Product.find({ aliexpressUrl: { $exists: true } })
+// rodar a cada 1 minuto
+// const job = new CronJob('*/1 * * * *', async () => {
+const main = async () => {
+  console.log('Cron rodando...')
+  const products = await Product.find()
 
   for (const product of products) {
-
     const [aliexpress, amazon, magazine] = await Promise.all([
       aliexpressScraper(product.aliexpressUrl),
-      amazonScraper(product.amazonUrl),
-      magazineScrapper(product.magazineUrl)
+      // amazonScraper(product.amazonUrl),
+      // magazineScraper(product.magazineUrl),
+      // shopeeScraper(product.shopeeUrl),
     ])
+
+    console.log(aliexpress, amazon, magazine)
 
     product.aliexpressPrice = aliexpress.price
     product.aliexpressFrete = aliexpress.frete
@@ -26,11 +28,19 @@ const job = new CronJob('*/5 * * * *', async () => {
     product.amazonFrete = amazon.frete
     product.magazinePrice = magazine.price
     product.magazineFrete = magazine.frete
+    product.shopeeICMS = product.shopeeICMS ? product.shopeeICMS : 0
+    product.shopeeFrete = product.shopeeFrete ? product.shopeeFrete : 0
 
-    console.log(product)
+    product.price = Math.min(aliexpress.price, amazon.price, magazine.price)
 
-    // await product.save()
+    await product.save()
+
+    console.log('Cron concluído!')
   }
+}
 
-  job.start()
-})
+main()
+
+// })
+
+// job.start()
